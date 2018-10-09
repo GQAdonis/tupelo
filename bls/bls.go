@@ -1,8 +1,8 @@
 package bls
 
 /*
-#cgo darwin LDFLAGS: -L${SRCDIR}/../lib/darwin -lindy_crypto
-#cgo linux LDFLAGS: -L${SRCDIR}/../lib/linux -lindy_crypto
+#cgo darwin LDFLAGS: -L${SRCDIR}/lib/darwin -lindy_crypto
+#cgo linux LDFLAGS: -L${SRCDIR}/lib/linux -lindy_crypto
 #include "./bls.h"
 */
 import "C"
