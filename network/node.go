@@ -108,6 +108,10 @@ func (n *Node) handler(s net.Stream) {
 	}
 }
 
+func (n *Node) PeerID() (peer.ID, error) {
+	return n.host.PeerID()
+}
+
 func (n *Node) PublicKey() *ecdsa.PublicKey {
 	return &n.key.PublicKey
 }

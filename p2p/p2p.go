@@ -85,6 +85,14 @@ func (h *Host) SetStreamHandler(protocol protocol.ID, handler func(net.Stream)) 
 	h.host.SetStreamHandler(protocol, handler)
 }
 
+func (h *Host) PeerID() (peer.ID, error) {
+	return PeerIDFromPublicKey(h.publicKey)
+}
+
+func PeerIDFromPublicKey(publicKey *ecdsa.PublicKey) (peer.ID, error) {
+	return peer.IDFromPublicKey(p2pPublicKeyFromEcdsaPublic(publicKey))
+}
+
 func (h *Host) Send(publicKey *ecdsa.PublicKey, protocol protocol.ID, payload []byte) error {
 	peerID, err := peer.IDFromPublicKey(p2pPublicKeyFromEcdsaPublic(publicKey))
 	if err != nil {

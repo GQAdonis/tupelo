@@ -150,6 +150,9 @@ func setupGossipNode(ecdsaKeyHex string, blsKeyHex string) *signer.GossipedSigne
 	badgerStorage := storage.NewBadgerStorage(filepath.Join(".storage", "testnode-chains-"+id))
 	node := network.NewNode(ecdsaKey)
 
+	peerid, _ := node.PeerID()
+	fmt.Printf("Node peer id: %v\n", peerid.Pretty())
+
 	group := setupNotaryGroup(badgerStorage)
 
 	gossipedSigner := signer.NewGossipedSigner(node, group, badgerStorage, blsKey)
