@@ -4,22 +4,27 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"io"
 
 	ds "github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-datastore"
 	dsync "github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-datastore/sync"
 	logging "github.com/ipsn/go-ipfs/gxlibs/github.com/ipfs/go-log"
 	"github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p"
 	circuit "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-circuit"
-	host "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-host"
 	dht "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-kad-dht"
+	net "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-net"
+	peer "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-peer"
 	rhost "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/ipsn/go-ipfs/gxlibs/github.com/multiformats/go-multiaddr"
 )
 
 var log = logging.Logger("libp2play")
 
+const STREAM_NAME = ""
+
 type Host struct {
-	host host.Host
+	host    *rhost.RoutedHost
+	routing *dht.IpfsDHT
 }
 
 func NewHost(ctx context.Context, privateKey *ecdsa.PrivateKey, port int) (Host, error) {
@@ -50,7 +55,44 @@ func NewHost(ctx context.Context, privateKey *ecdsa.PrivateKey, port int) (Host,
 	// Make the routed host
 	routedHost := rhost.Wrap(basicHost, dht)
 
-	return Host{host: routedHost}, nil
+	return Host{host: routedHost, routing: dht}, nil
+}
+
+func (h *Host) Bootstrap(peers []string) (io.Closer, error) {
+	bootstrapCfg := BootstrapConfigWithPeers(convertPeers(peers))
+	return Bootstrap(h.host, h.routing, bootstrapCfg)
+}
+
+func (h *Host) SetHandler(handler func([]byte)) {
+	h.host.SetStreamHandler(STREAM_NAME, func(s net.Stream) {
+		log.Info("Got a new stream!")
+		handler([]byte{})
+	})
+}
+
+func (h *Host) Send(publicKey *ecdsa.PublicKey, payload []byte) error {
+	peerId, err := peer.IDFromPublicKey(&ECDSAPublicKey{publicKey})
+	if err != nil {
+		return fmt.Errorf("Could not convert public key to peer id: %v", err)
+	}
+
+	stream, err := h.host.NewStream(context.Background(), peerId, STREAM_NAME)
+	if err != nil {
+		return fmt.Errorf("Error opening stream: %v", err)
+	}
+
+	_, err = stream.Write(payload)
+	if err != nil {
+		return fmt.Errorf("Error writing message: %v", err)
+	}
+
+	return nil
+
+	// _, err = ioutil.ReadAll(stream)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Info("read reply: %q\n", out)
 }
 
 func (h *Host) Addresses() []ma.Multiaddr {
