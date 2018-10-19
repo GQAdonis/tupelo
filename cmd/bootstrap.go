@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -10,17 +11,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const InsecureLocalPrivateKey = "0xd68934895606974010209615b8615d8c0e037a4718791f6448c3cd63c323f39c"
+var bootstrapNodePort int
 
 var bootstrapNodeCmd = &cobra.Command{
 	Use:   "bootstrap-node",
 	Short: "Run a bootstrap node",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		key, err := crypto.ToECDSA(hexutil.MustDecode(InsecureLocalPrivateKey))
+		ecdsaKeyHex := os.Getenv("NODE_ECDSA_KEY_HEX")
+		ecdsaKey, err := crypto.ToECDSA(hexutil.MustDecode(ecdsaKeyHex))
+		if err != nil {
+			panic("error fetching ecdsa key - set env variable NODE_ECDSA_KEY_HEX")
+		}
+
 		ctx := context.Background()
-		port := 10000
-		host, err := p2p.NewHost(ctx, key, port)
+		host, err := p2p.NewHost(ctx, ecdsaKey, bootstrapNodePort)
 		if err != nil {
 			panic(fmt.Errorf("Could not start bootstrap node, %v", err))
 		}
@@ -35,4 +40,5 @@ var bootstrapNodeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(bootstrapNodeCmd)
+	bootstrapNodeCmd.Flags().IntVarP(&bootstrapNodePort, "port", "p", 0, "what port to use (default random)")
 }
