@@ -42,7 +42,7 @@ type Node struct {
 
 func NewNode(key *ecdsa.PrivateKey) *Node {
 	ctx, cancel := context.WithCancel(context.Background())
-	host, err := p2p.NewHost(ctx, key, 0)
+	host, err := p2p.NewHost(ctx, key, 34001)
 
 	if err != nil {
 		panic(fmt.Sprintf("Could not create node %v", err))
@@ -90,19 +90,23 @@ func (n *Node) Stop() {
 	n.cancel()
 }
 
+func (n *Node) ForceConnect(peers []string) error {
+	return n.host.ForceConnect(peers)
+}
+
 func (n *Node) Send(params MessageParams) error {
-	fmt.Printf("sending %s\n", params.Payload)
+	// fmt.Printf("sending %s\n", params.Payload)
 	return n.host.Send(params.Destination, ProtocolID, params.Payload)
 }
 
 func (n *Node) handler(s net.Stream) {
-	fmt.Printf("new stream from %v\n", s.Conn().RemotePeer().Pretty())
+	// fmt.Printf("new stream from %v\n", s.Conn().RemotePeer().Pretty())
 	data, err := ioutil.ReadAll(s)
 	if err != nil {
 		fmt.Printf("error reading: %v", err)
 	}
 	s.Close()
-	fmt.Printf("received: %s\n", data)
+	// fmt.Printf("received: %s\n", data)
 	n.MessageChan <- ReceivedMessage{
 		Payload: data,
 		Source:  (*btcec.PublicKey)(s.Conn().RemotePublicKey().(*crypto.Secp256k1PublicKey)).ToECDSA(),

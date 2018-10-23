@@ -9,13 +9,12 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/log"
+	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-ipld-cbor"
 	"github.com/quorumcontrol/chaintree/chaintree"
 	"github.com/quorumcontrol/chaintree/nodestore"
 	"github.com/quorumcontrol/chaintree/typecaster"
 	"github.com/quorumcontrol/qc3/bls"
-
-	cid "github.com/ipfs/go-cid"
-	"github.com/ipfs/go-ipld-cbor"
 )
 
 func init() {
@@ -26,8 +25,12 @@ func init() {
 }
 
 const (
-	defaultRoundLength = 30 // round length in seconds
+	defaultRoundLength  = 30 // round length in seconds
+	roundCacheStackSize = 10
 )
+
+var roundCache = make(map[int64]*RoundInfo)
+var roundCacheStack = make([]int64, 0)
 
 // NotaryGroup is a wrapper around a Chain Tree specifically used
 // for keeping track of Signer membership and rewards.
@@ -77,6 +80,10 @@ func (ng *NotaryGroup) CreateGenesisState(startRound int64, signers ...*RemoteNo
 
 // MostRecentRound returns the roundinfo that is most recent to the requested round.
 func (ng *NotaryGroup) MostRecentRoundInfo(round int64) (roundInfo *RoundInfo, err error) {
+	if cachedRoundInfo, ok := roundCache[round]; ok {
+		return cachedRoundInfo, nil
+	}
+
 	allRoundsUntyped, _, err := ng.signedTree.ChainTree.Dag.Resolve([]string{"tree", "rounds"})
 
 	if err != nil {
@@ -96,6 +103,22 @@ func (ng *NotaryGroup) MostRecentRoundInfo(round int64) (roundInfo *RoundInfo, e
 				return nil, err
 			}
 			if roundInfo != nil {
+				// Only cache current or past rounds
+				if round <= ng.RoundAt(time.Now()) {
+					roundCache[round] = roundInfo
+					roundCacheStack = append(roundCacheStack, round)
+
+					if len(roundCacheStack) > roundCacheStackSize {
+						toDelete := roundCacheStack[0 : len(roundCacheStack)-roundCacheStackSize]
+						roundCacheStack = roundCacheStack[len(roundCacheStack)-roundCacheStackSize:]
+						for _, roundToDelete := range toDelete {
+							if _, ok := roundCache[roundToDelete]; ok {
+								delete(roundCache, roundToDelete)
+							}
+						}
+					}
+				}
+
 				return
 			}
 		}

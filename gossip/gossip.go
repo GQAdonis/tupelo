@@ -534,20 +534,21 @@ func (g *Gossiper) handleTentativeCommitMessage(ctx context.Context, msg *Gossip
 	}
 
 	trans := msg.toUnsignedStoredTransaction()
-
-	// if the prepare signature is not valid then drop message
-	log.Trace("prepare sig", "sig", msg.PrepareSignature)
-	verified, err := g.Group.VerifySignature(msg.Round, trans.msgToSignPrepare(), &msg.PrepareSignature)
-	if err != nil {
-		return fmt.Errorf("error verifying signature: %v", err)
-	}
-	if !verified {
-		return fmt.Errorf("error, prepare statement not verified")
-	}
-
 	csID, savedTrans, err := g.conflictSetTransactionFromMessage(msg)
 	if err != nil {
 		return err
+	}
+
+	if savedTrans == nil {
+		// if the prepare signature is not valid then drop message
+		log.Trace("prepare sig", "sig", msg.PrepareSignature)
+		verified, err := g.Group.VerifySignature(msg.Round, trans.msgToSignPrepare(), &msg.PrepareSignature)
+		if err != nil {
+			return fmt.Errorf("error verifying signature: %v", err)
+		}
+		if !verified {
+			return fmt.Errorf("error, prepare statement not verified")
+		}
 	}
 
 	newSigs := msg.PhaseSignatures

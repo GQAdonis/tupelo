@@ -48,7 +48,6 @@ func (gc *GossipClient) Start() {
 		return
 	}
 	gc.started = true
-
 	gc.handler.Start()
 }
 

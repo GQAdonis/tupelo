@@ -26,5 +26,5 @@ else
   docker rm -fv ${container_id}
 fi
 
-git tag ${version}
-git push origin ${version}
+#git tag ${version}
+#git push origin ${version}

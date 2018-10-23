@@ -134,7 +134,7 @@ func setupNotaryGroup(storageAdapter storage.Storage) *consensus.NotaryGroup {
 }
 
 func setupGossipNode(ecdsaKeyHex string, blsKeyHex string) *signer.GossipedSigner {
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(log.LvlDebug), log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(log.LvlError), log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
 
 	ecdsaKey, err := crypto.ToECDSA(hexutil.MustDecode(ecdsaKeyHex))
 	if err != nil {
@@ -157,6 +157,19 @@ func setupGossipNode(ecdsaKeyHex string, blsKeyHex string) *signer.GossipedSigne
 
 	gossipedSigner := signer.NewGossipedSigner(node, group, badgerStorage, blsKey)
 	gossipedSigner.Start()
+
+	// time.Sleep(30 * time.Second)
+
+	// addPeers := []string{}
+	// for _, keys := range bootstrapPublicKeys {
+	// 	if keys.PeerIDBase58Key != peerid.Pretty() {
+	// 		addPeers = append(addPeers, keys.PeerIDBase58Key)
+	// 	}
+	// }
+	// node.ForceConnect(addPeers)
+	// time.Sleep(5 * time.Second)
+	// node.ForceConnect(addPeers)
+	// time.Sleep(5 * time.Second)
 
 	return gossipedSigner
 }

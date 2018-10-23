@@ -17,6 +17,7 @@ import (
 	dht "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-kad-dht"
 	net "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-net"
 	peer "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-peerstore"
 	protocol "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p-protocol"
 	rhost "github.com/ipsn/go-ipfs/gxlibs/github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/ipsn/go-ipfs/gxlibs/github.com/multiformats/go-multiaddr"
@@ -93,14 +94,23 @@ func PeerIDFromPublicKey(publicKey *ecdsa.PublicKey) (peer.ID, error) {
 	return peer.IDFromPublicKey(p2pPublicKeyFromEcdsaPublic(publicKey))
 }
 
+func (h *Host) ForceConnect(peers []string) error {
+	pinfos := make([]pstore.PeerInfo, len(peers))
+	for i, p := range peers {
+		b58decoded, _ := peer.IDB58Decode(p)
+		pinfos[i] = pstore.PeerInfo{ID: b58decoded}
+	}
+	return bootstrapConnect(context.Background(), h.host, pinfos)
+}
+
 func (h *Host) Send(publicKey *ecdsa.PublicKey, protocol protocol.ID, payload []byte) error {
 	peerID, err := peer.IDFromPublicKey(p2pPublicKeyFromEcdsaPublic(publicKey))
 	if err != nil {
 		return fmt.Errorf("Could not convert public key to peer id: %v", err)
 	}
-	fmt.Printf("sending to %s\n", peerID.Pretty())
+	// fmt.Printf("sending to %s\n", peerID.Pretty())
 
-	fmt.Printf("opening stream\n")
+	// fmt.Printf("opening stream\n")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	stream, err := h.host.NewStream(ctx, peerID, protocol)
@@ -109,14 +119,14 @@ func (h *Host) Send(publicKey *ecdsa.PublicKey, protocol protocol.ID, payload []
 		return fmt.Errorf("Error opening stream: %v", err)
 	}
 
-	fmt.Printf("writing\n")
+	// fmt.Printf("writing\n")
 
 	n, err := stream.Write(payload)
 	if err != nil {
 		return fmt.Errorf("Error writing message: %v", err)
 	}
 	log.Debugf("%s wrote %d bytes", h.host.ID().Pretty(), n)
-	fmt.Printf("%s wrote %d bytes\n", h.host.ID().Pretty(), n)
+	// fmt.Printf("%s wrote %d bytes\n", h.host.ID().Pretty(), n)
 	stream.Close()
 
 	return nil

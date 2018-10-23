@@ -190,16 +190,19 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []pstore.PeerInfo
 			defer wg.Done()
 			defer log.EventBegin(ctx, "bootstrapDial", ph.ID(), p.ID).Done()
 			log.Debugf("%s bootstrapping to %s", ph.ID(), p.ID)
+			fmt.Printf("%s bootstrapping to %s\n", ph.ID().Pretty(), p.ID.Pretty())
 
 			ph.Peerstore().AddAddrs(p.ID, p.Addrs, pstore.PermanentAddrTTL)
 			if err := ph.Connect(ctx, p); err != nil {
 				log.Event(ctx, "bootstrapDialFailed", p.ID)
 				log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
+				fmt.Printf("failed to bootstrap with %v: %s\n", p.ID.Pretty(), err)
 				errs <- err
 				return
 			}
 			log.Event(ctx, "bootstrapDialSuccess", p.ID)
 			log.Infof("bootstrapped with %v", p.ID)
+			fmt.Printf("bootstrapped with %v\n", p.ID.Pretty())
 		}(p)
 	}
 	wg.Wait()
@@ -217,6 +220,19 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []pstore.PeerInfo
 	if count == len(peers) {
 		return fmt.Errorf("failed to bootstrap. %s", err)
 	}
+
+	// for _, apeer := range ph.Peerstore().Peers() {
+	// 	pi := ph.Peerstore().PeerInfo(apeer)
+	// 	cleanedAddrs := make([]ma.Multiaddr, 0)
+	// 	for _, addr := range pi.Addrs {
+	// 		if addr.String() != "/p2p-circuit" {
+	// 			cleanedAddrs = append(cleanedAddrs, addr)
+	// 		}
+	// 	}
+	// 	pi.Addrs = cleanedAddrs
+	// 	spew.Dump(pi)
+	// }
+
 	return nil
 }
 
