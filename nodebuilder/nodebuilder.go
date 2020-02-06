@@ -19,7 +19,6 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/quorumcontrol/tupelo-go-sdk/p2p"
 
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/shibukawa/configdir"
@@ -226,7 +225,7 @@ func (nb *NodeBuilder) startBootstrap(ctx context.Context) (*p2p.LibP2PHost, err
 		ctx,
 		append(nb.defaultP2POptions(ctx),
 			p2p.WithLibp2pOptions(libp2p.ConnectionManager(cm)),
-			p2p.WithRelayOpts(circuit.OptHop),
+			// p2p.WithRelayOpts(circuit.OptHop),
 		)...,
 	)
 	if err != nil {
